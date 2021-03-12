@@ -9,20 +9,89 @@ app.use(cors());
 
 const users = [];
 
+function isUUID(uuid) {
+  let s = "" + uuid;
+
+  s = s.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+  if (s === null) {
+    return false;
+  }
+  return true;
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const userIndex = users.findIndex(
+    user => user.username === username
+  );
+
+  if (userIndex === -1) {
+    return response.status(404).json({ error: "Not found" });
+  }
+
+  request.user = users[userIndex];
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  if (user.pro) {
+    return next();
+  }
+
+  if (user.todos.length < 10) {
+    return next();
+  }
+
+  return response.status(403).json({ error: "Change to a pro plan" });
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  // validar usuário
+  const userIndex = users.findIndex(
+    user => user.username === username
+  );
+  if (userIndex === -1) {
+    return response.status(404).json({ error: "Not found" });
+  }
+
+  // validar id é uuid
+  if (!isUUID(id)) {
+    return response.status(400).json({ error: "Incorrect uuid format" });
+  }
+
+  // validar se id é um id de um todo
+  const todoIndex = users[userIndex].todos.findIndex(
+    todo => todo.id === id
+  )
+  if (todoIndex === -1) {
+    return response.status(404).json({ error: "Not found" });
+  }
+
+  request.todo = users[userIndex].todos[todoIndex];
+  request.user = users[userIndex];
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+
+  // validar usuário
+  const userIndex = users.findIndex(
+    user => user.id === id
+  );
+  if (userIndex === -1) {
+    return response.status(404).json({ error: "Not found" });
+  }
+
+  request.user = users[userIndex];
+  return next();
 }
 
 app.post('/users', (request, response) => {
